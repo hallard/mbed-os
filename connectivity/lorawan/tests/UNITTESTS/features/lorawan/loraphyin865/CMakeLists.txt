@@ -20,6 +20,7 @@ target_sources(${TEST_NAME}
 
 target_link_libraries(${TEST_NAME}
     PRIVATE
+        mbed-stubs-cellular-headers
         mbed-headers
         mbed-stubs
         mbed-stubs-headers
