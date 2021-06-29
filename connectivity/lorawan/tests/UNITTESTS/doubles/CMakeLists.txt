@@ -13,6 +13,14 @@ target_include_directories(mbed-headers-lorawan
         ${mbed-os_SOURCE_DIR}/connectivity/lorawan/system
 )
 
+
+add_library(mbed-stubs-lorawan-headers INTERFACE)
+
+target_include_directories(mbed-stubs-lorawan-headers
+    INTERFACE
+        .
+)
+
 add_library(mbed-stubs-lorawan)
 
 target_compile_definitions(mbed-stubs-lorawan
