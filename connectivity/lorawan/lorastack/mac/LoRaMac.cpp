@@ -209,6 +209,7 @@ void LoRaMac::handle_join_accept_frame(const uint8_t *payload, uint16_t size)
     mic_rx |= ((uint32_t) _params.rx_buffer[size - LORAMAC_MFR_LEN + 3] << 24);
 
     if (mic_rx == mic) {
+        tr_debug("stop rx2 ID:%d", _params.timers.rx_window2_timer.timer_id);
         _lora_time.stop(_params.timers.rx_window2_timer);
         if (_lora_crypto.compute_skeys_for_join_frame(_params.keys.app_key,
                                                       APPKEY_KEY_LENGTH,
@@ -560,9 +561,12 @@ void LoRaMac::handle_data_frame(const uint8_t *const payload,
     // message is intended for us and MIC have passed, stop RX2 Window
     // Spec: 3.3.4 Receiver Activity during the receive windows
     if (get_current_slot() == RX_SLOT_WIN_1) {
+        tr_debug("stop rx2 ID:%d", _params.timers.rx_window2_timer.timer_id);
         _lora_time.stop(_params.timers.rx_window2_timer);
     } else {
+        tr_debug("stop rx1 ID:%d", _params.timers.rx_window1_timer.timer_id);
         _lora_time.stop(_params.timers.rx_window1_timer);
+        tr_debug("stop rx2 ID:%d", _params.timers.rx_window2_timer.timer_id);
         _lora_time.stop(_params.timers.rx_window2_timer);
     }
 
@@ -597,6 +601,7 @@ void LoRaMac::handle_data_frame(const uint8_t *const payload,
 
     // only stop act timer, if the ack is actually recieved
     if (_mcps_confirmation.ack_received) {
+        tr_debug("stop ack timeout ID:%d", _params.timers.ack_timeout_timer.timer_id);
         _lora_time.stop(_params.timers.ack_timeout_timer);
     }
 
@@ -638,9 +643,17 @@ void LoRaMac::on_radio_tx_done(lorawan_time_t timestamp)
         _lora_time.start(_params.timers.rx_window1_timer,
                          _params.rx_window1_delay - time_diff);
 
+        tr_debug("start rx1 in %dms ID:%d", _params.rx_window1_delay - time_diff, 
+                    _params.timers.rx_window1_timer.timer_id);
+
+
         // start timer after which rx2_window will get opened
         _lora_time.start(_params.timers.rx_window2_timer,
                          _params.rx_window2_delay - time_diff);
+
+        tr_debug("start rx2 in %dms ID:%d", _params.rx_window2_delay - time_diff, 
+                    _params.timers.rx_window2_timer.timer_id);
+
 
         // If class C and an Unconfirmed messgae is outgoing,
         // this will start a timer which will invoke rx2 would be
@@ -657,6 +670,10 @@ void LoRaMac::on_radio_tx_done(lorawan_time_t timestamp)
                              (_params.rx_window2_delay - time_diff) +
                              _params.rx_window2_config.window_timeout_ms +
                              _lora_phy->get_ack_timeout());
+
+            tr_debug("start ack timeout in %dms ID:%d)", _params.rx_window2_delay - time_diff +
+                             _params.rx_window2_config.window_timeout_ms + _lora_phy->get_ack_timeout(), 
+                            _params.timers.ack_timeout_timer.timer_id);
         }
     } else {
         _mcps_confirmation.status = LORAMAC_EVENT_INFO_STATUS_OK;
@@ -680,6 +697,7 @@ void LoRaMac::on_radio_rx_done(const uint8_t *const payload, uint16_t size,
         _lora_time.stop(_rx2_closure_timer_for_class_c);
         open_rx2_window();
     } else if (_device_class != CLASS_C) {
+         tr_debug("stop rx1 ID:%d", _params.timers.rx_window1_timer.timer_id);
         _lora_time.stop(_params.timers.rx_window1_timer);
         _lora_phy->put_radio_to_sleep();
     }
@@ -726,9 +744,15 @@ void LoRaMac::on_radio_rx_done(const uint8_t *const payload, uint16_t size,
 
 void LoRaMac::on_radio_tx_timeout(void)
 {
+    tr_debug("stop rx1 ID:%d", _params.timers.rx_window1_timer.timer_id);
     _lora_time.stop(_params.timers.rx_window1_timer);
+    
+    tr_debug("stop rx2 ID:%d", _params.timers.rx_window2_timer.timer_id);
     _lora_time.stop(_params.timers.rx_window2_timer);
+
     _lora_time.stop(_rx2_closure_timer_for_class_c);
+    
+    tr_debug("stop ack timeout ID:%d", _params.timers.ack_timeout_timer.timer_id);
     _lora_time.stop(_params.timers.ack_timeout_timer);
 
     if (_device_class == CLASS_C) {
@@ -771,6 +795,7 @@ void LoRaMac::on_radio_rx_timeout(bool is_timeout)
 
         if (_device_class != CLASS_C) {
             if (_lora_time.get_elapsed_time(_params.timers.aggregated_last_tx_time) >= _params.rx_window2_delay) {
+                tr_debug("stop rx2 ID:%d", _params.timers.rx_window2_timer.timer_id);
                 _lora_time.stop(_params.timers.rx_window2_timer);
             }
         }
@@ -804,6 +829,7 @@ bool LoRaMac::continue_joining_process()
 bool LoRaMac::continue_sending_process()
 {
     if (_params.ack_timeout_retry_counter > _params.max_ack_timeout_retries) {
+        tr_debug("stop ack timeout ID:%d", _params.timers.ack_timeout_timer.timer_id);
         _lora_time.stop(_params.timers.ack_timeout_timer);
         return false;
     }
@@ -866,7 +892,7 @@ lorawan_status_t LoRaMac::handle_retransmission()
 void LoRaMac::on_backoff_timer_expiry(void)
 {
     Lock lock(*this);
-
+    tr_debug("stop backoff timeout ID:%d", _params.timers.backoff_timer.timer_id);
     _lora_time.stop(_params.timers.backoff_timer);
 
     if ((schedule_tx() != LORAWAN_STATUS_OK) && nwk_joined()) {
@@ -879,6 +905,8 @@ void LoRaMac::open_rx1_window(void)
     Lock lock(*this);
     _demod_ongoing = true;
     _continuous_rx2_window_open = false;
+
+    tr_debug("stop rx1 ID:%d", _params.timers.rx_window1_timer.timer_id);
     _lora_time.stop(_params.timers.rx_window1_timer);
     _params.rx_slot = RX_SLOT_WIN_1;
 
@@ -915,6 +943,7 @@ void LoRaMac::open_rx2_window()
     }
     Lock lock(*this);
     _continuous_rx2_window_open = true;
+    tr_debug("stop rx2 ID:%d", _params.timers.rx_window2_timer.timer_id);
     _lora_time.stop(_params.timers.rx_window2_timer);
 
     _params.rx_window2_config.channel = _params.channel;
@@ -949,6 +978,7 @@ void LoRaMac::on_ack_timeout_timer_event(void)
     }
 
     tr_debug("ACK_TIMEOUT Elapses, Retrying ...");
+    tr_debug("stop ack timeout ID:%d", _params.timers.ack_timeout_timer.timer_id);
     _lora_time.stop(_params.timers.ack_timeout_timer);
 
     // reduce data rate on every 2nd attempt if and only if the
@@ -1077,7 +1107,9 @@ lorawan_status_t LoRaMac::clear_tx_pipe(void)
     }
 
     if (_ev_queue->time_left(id) > 0) {
+        tr_debug("stop backoff timeout ID:%d", _params.timers.backoff_timer.timer_id);
         _lora_time.stop(_params.timers.backoff_timer);
+        tr_debug("stop ack timeout ID:%d", _params.timers.ack_timeout_timer.timer_id);
         _lora_time.stop(_params.timers.ack_timeout_timer);
         memset(_params.tx_buffer, 0, sizeof _params.tx_buffer);
         _params.tx_buffer_len = 0;
@@ -1141,6 +1173,7 @@ lorawan_status_t LoRaMac::schedule_tx()
                     _lora_phy->put_radio_to_sleep();
                 }
                 _lora_time.start(_params.timers.backoff_timer, backoff_time);
+                tr_debug("start backoff in %dms ID:%d", backoff_time, _params.timers.backoff_timer.timer_id);
             }
             return LORAWAN_STATUS_OK;
         default:
@@ -1853,9 +1886,16 @@ lorawan_status_t LoRaMac::initialize(EventQueue *queue,
 
 void LoRaMac::disconnect()
 {
+    tr_debug("stop backoff timeout ID:%d", _params.timers.backoff_timer.timer_id);
     _lora_time.stop(_params.timers.backoff_timer);
+
+    tr_debug("stop rx1 ID:%d", _params.timers.rx_window1_timer.timer_id);
     _lora_time.stop(_params.timers.rx_window1_timer);
+    
+    tr_debug("stop rx2 ID:%d", _params.timers.rx_window2_timer.timer_id);
     _lora_time.stop(_params.timers.rx_window2_timer);
+    
+    tr_debug("stop ack timeout ID:%d", _params.timers.ack_timeout_timer.timer_id);
     _lora_time.stop(_params.timers.ack_timeout_timer);
 
     _lora_phy->put_radio_to_sleep();
