@@ -1069,6 +1069,7 @@ lorawan_status_t LoRaWANStack::state_controller(device_states_t new_state)
 {
     lorawan_status_t status = LORAWAN_STATUS_OK;
 
+    tr_debug("state_controller=%d new=%d",_device_current_state, new_state);
     switch (new_state) {
         case DEVICE_STATE_IDLE:
             process_idle_state(status);
@@ -1097,6 +1098,7 @@ lorawan_status_t LoRaWANStack::state_controller(device_states_t new_state)
             MBED_ASSERT(false);
     }
 
+    tr_debug("state_controller=%d",_device_current_state);
     return status;
 }
 
@@ -1117,6 +1119,7 @@ void LoRaWANStack::process_shutdown_state(lorawan_status_t &op_status)
 
 void LoRaWANStack::process_status_check_state()
 {
+    tr_debug("process_status_check_state=%d",_device_current_state );
     if (_device_current_state == DEVICE_STATE_SENDING ||
             _device_current_state == DEVICE_STATE_AWAITING_ACK) {
         // If there was a successful transmission, this block gets a kick after

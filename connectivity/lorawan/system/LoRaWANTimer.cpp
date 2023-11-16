@@ -19,6 +19,8 @@ SPDX-License-Identifier: BSD-3-Clause
 */
 
 #include "LoRaWANTimer.h"
+#include "mbed-trace/mbed_trace.h"
+#define TRACE_GROUP "LTIM"
 
 using namespace std::chrono;
 
@@ -56,12 +58,14 @@ void LoRaWANTimeHandler::init(timer_event_t &obj, mbed::Callback<void()> callbac
 void LoRaWANTimeHandler::start(timer_event_t &obj, const uint32_t timeout)
 {
     obj.timer_id = _queue->call_in(milliseconds(timeout), obj.callback);
+    tr_debug("Start Timer in %dms (%d)", timeout, obj.timer_id);
     MBED_ASSERT(obj.timer_id != 0);
 }
 
 void LoRaWANTimeHandler::stop(timer_event_t &obj)
 {
     _queue->cancel(obj.timer_id);
+    tr_debug("Stop Timer (%d)", obj.timer_id);
     obj.timer_id = 0;
 }
 

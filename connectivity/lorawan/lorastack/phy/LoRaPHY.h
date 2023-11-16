@@ -564,6 +564,10 @@ public: //Verifiers
      */
     bool verify_nb_join_trials(uint8_t nb_join_trials);
 
+    // CHH expose some Radio element to debug
+    uint8_t get_radio_status() {return _radio->get_status(); } 
+
+
 protected:
     LoRaPHY();
 
