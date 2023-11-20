@@ -3177,6 +3177,35 @@ HAL_StatusTypeDef UART_SetConfig(UART_HandleTypeDef *huart)
   /*-------------------------- USART BRR Configuration -----------------------*/
   UART_GETCLOCKSOURCE(huart, clocksource);
 
+  if (UART_INSTANCE_LOWPOWER(huart)) {
+      printf("LPUART ");
+  }
+  printf("Clock Source ");
+
+switch (clocksource)
+{
+    case UART_CLOCKSOURCE_PCLK1:
+    printf("PCLK1@%ld", HAL_RCC_GetPCLK1Freq());
+    break;
+    case UART_CLOCKSOURCE_PCLK2:
+    printf("PCLK2@%ld", HAL_RCC_GetPCLK2Freq());
+    break;
+    case UART_CLOCKSOURCE_HSI:
+    printf("HSI");
+    break;
+    case UART_CLOCKSOURCE_SYSCLK:
+    printf("SysClk");
+    break;
+    case UART_CLOCKSOURCE_LSE:
+    printf("LSE");
+    break;
+    default:
+    printf("Error");
+    break;
+}
+  printf(" Prescaler=%d,  %dbps\r\n",  huart->Init.ClockPrescaler, huart->Init.BaudRate);
+
+
   /* Check LPUART instance */
   if (UART_INSTANCE_LOWPOWER(huart))
   {
@@ -3221,6 +3250,7 @@ HAL_StatusTypeDef UART_SetConfig(UART_HandleTypeDef *huart)
         if ((usartdiv >= LPUART_BRR_MIN) && (usartdiv <= LPUART_BRR_MAX))
         {
           huart->Instance->BRR = usartdiv;
+          printf("1) BBR=%d\r\n", usartdiv);
         }
         else
         {
@@ -3265,6 +3295,7 @@ HAL_StatusTypeDef UART_SetConfig(UART_HandleTypeDef *huart)
         brrtemp = (uint16_t)(usartdiv & 0xFFF0U);
         brrtemp |= (uint16_t)((usartdiv & (uint16_t)0x000FU) >> 1U);
         huart->Instance->BRR = brrtemp;
+        printf("2) BBR=%d\r\n", usartdiv);
       }
       else
       {
@@ -3304,6 +3335,7 @@ HAL_StatusTypeDef UART_SetConfig(UART_HandleTypeDef *huart)
       if ((usartdiv >= UART_BRR_MIN) && (usartdiv <= UART_BRR_MAX))
       {
         huart->Instance->BRR = (uint16_t)usartdiv;
+        printf("3) BBR=%d\r\n", usartdiv);
       }
       else
       {
