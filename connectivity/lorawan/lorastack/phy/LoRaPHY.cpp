@@ -28,6 +28,8 @@ SPDX-License-Identifier: BSD-3-Clause
 #include <math.h>
 
 #include "LoRaPHY.h"
+#include "mbed-trace/mbed_trace.h"
+#define TRACE_GROUP "LPHY"
 
 #define BACKOFF_DC_1_HOUR       100
 #define BACKOFF_DC_10_HOURS     1000
@@ -452,6 +454,7 @@ int8_t LoRaPHY::compute_tx_power(int8_t tx_power_idx, float max_eirp,
     int8_t phy_tx_power = 0;
 
     phy_tx_power = (int8_t) floor((max_eirp - (tx_power_idx * 2U)) - antenna_gain);
+    tr_debug("TX: Max EIRPP=%.fdB, Antenna Gain=%.2f, Power=%ddB", max_eirp, antenna_gain, phy_tx_power);
 
     return phy_tx_power;
 }
