@@ -677,6 +677,8 @@ private:
 protected:
     LoRaRadio *_radio;
     LoRaWANTimeHandler *_lora_time;
+
+public:
     loraphy_params_t phy_params;
 };
 

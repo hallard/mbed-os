@@ -552,6 +552,12 @@ public:
         _lw_stack.unlock();
     }
 
+    LoRaPHY * get_phy()
+    {
+        MBED_ASSERT(_default_phy);
+        return _default_phy;
+    }
+
 private:
     /** ScopedLock object
      *
